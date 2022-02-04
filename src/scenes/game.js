@@ -7,12 +7,15 @@ export default class Game extends Phaser.Scene {
 			key: "Game",
 		});
 	}
-	init(data) {}
+	init(data) {
+		this.numLetters = data.numLetters;
+	}
 	preload() {
 		this.load.baseURL = "https://extras.natekeep.com/wordle-media/";
 		this.load.setCORS("anonymous");
 		this.load.crossOrigin = "anonymous";
 		this.load.json("allWords", "words.json");
+		this.load.image("homeButton", "home.png");
 
 		this.allWords;
 		this.letters = [
@@ -55,11 +58,26 @@ export default class Game extends Phaser.Scene {
 	create() {
 		let self = this;
 
+		this.homeButton = this.add
+			.image(800, 50, "homeButton")
+			.setInteractive()
+			.setScale(0.1)
+			.on("pointerdown", function () {
+				self.scene.start("Home");
+			});
+
 		self.allWords = self.cache.json.get("allWords");
-		self.wordToGuess =
-			self.allWords["6"][
-				Math.floor(Math.random() * self.allWords["6"].length)
-			].toUpperCase();
+		if (self.numLetters === 5) {
+			self.wordToGuess =
+				self.allWords["5"][
+					Math.floor(Math.random() * self.allWords["5"].length)
+				].toUpperCase();
+		} else if (self.numLetters === 6) {
+			self.wordToGuess =
+				self.allWords["6"][
+					Math.floor(Math.random() * self.allWords["6"].length)
+				].toUpperCase();
+		}
 
 		console.log(self.wordToGuess);
 
@@ -94,11 +112,12 @@ export default class Game extends Phaser.Scene {
 			letterX += 60;
 		}
 
+		var startX = self.numLetters === 6 ? 225 : 260;
 		for (let i = 0; i < 6; i++) {
 			self.guessTiles[i] = [];
-			for (let j = 0; j < 6; j++) {
+			for (let j = 0; j < self.numLetters; j++) {
 				self.guessTiles[i][j] = new GuessTile(this);
-				self.guessTiles[i][j].render(j * 90 + 225, i * 90 + 75);
+				self.guessTiles[i][j].render(j * 90 + startX, i * 90 + 75);
 			}
 		}
 
@@ -113,11 +132,8 @@ export default class Game extends Phaser.Scene {
 			if (!self.gameOver) {
 				if (
 					self.letters.includes(event.key.toUpperCase()) &&
-					self.guessIndex != 6
+					self.guessIndex != self.numLetters
 				) {
-					console.log(self.guessTiles[self.turn][self.guessIndex]);
-					console.log(self.turn);
-					console.log(self.guessIndex);
 					self.guessTiles[self.turn][self.guessIndex].updateLetter(
 						event.key.toUpperCase()
 					);
@@ -127,7 +143,10 @@ export default class Game extends Phaser.Scene {
 						self.guessIndex - 1
 					].updateLetter("");
 					self.guessIndex -= 1;
-				} else if (event.key === "Enter" && self.guessIndex === 6) {
+				} else if (
+					event.key === "Enter" &&
+					self.guessIndex === self.numLetters
+				) {
 					if (checkIfValidWord()) {
 						checkWord();
 					}
@@ -150,20 +169,17 @@ export default class Game extends Phaser.Scene {
 					self.letterTiles[letter.value].setColor(0);
 				}
 			});
-			if (correctTiles === 6) {
+			if (correctTiles === self.numLetters) {
 				self.gameOver = true;
-				updateNotificationText(
-					"Congrats you won! (refresh for now)",
-					"#00FF00",
-					2
-				);
+				updateNotificationText("Congrats you won!", "#00FF00");
+				resetGame();
 			} else if (self.turn === 5) {
 				self.gameOver = true;
 				updateNotificationText(
-					"Better luck next time (refresh for now)",
-					"#FF0000",
-					2
+					`The word was ${self.wordToGuess}`,
+					"#FF0000"
 				);
+				resetGame();
 			}
 			self.turn += 1;
 			self.guessIndex = 0;
@@ -173,24 +189,46 @@ export default class Game extends Phaser.Scene {
 			self.guessTiles[self.turn].forEach((letter) => {
 				word += letter.value.toLowerCase();
 			});
-			if (self.allWords["all_6"].includes(word)) {
+
+			if (self.allWords[`all_${self.numLetters}`].includes(word)) {
 				return true;
 			} else {
-				updateNotificationText("Not a valid word", "#FF0000", 2);
+				updateNotificationText("Not a valid word", "#FF0000", 2000);
 			}
 			return false;
 		}
-		function updateNotificationText(message, color, timeout) {
-			self.notificationText.setText(message).setColor(color);
-			self.notificationTimer = self.time.delayedCall({
-				delay: 2,
-				callback: function () {
-					self.notificationText.setText[""];
-					self.notificationText.setVisible(false);
-					console.log("THIS IS BEING CALLED KAPPA");
-				},
-				callbackScope: this,
-			});
+		function updateNotificationText(message, color, timeout = 0) {
+			self.notificationText
+				.setText(message)
+				.setColor(color)
+				.setVisible(true);
+			if (timeout) {
+				self.notificationTimer = self.time.addEvent({
+					delay: timeout,
+					callback: function () {
+						self.notificationText.setVisible(false);
+					},
+					callbackScope: this,
+				});
+			}
+		}
+		function resetGame() {
+			self.resetGameBox = self.add
+				.rectangle(700, 600, 100, 50, 0x32cd32)
+				.setInteractive()
+				.on("pointerdown", function () {
+					self.scene.restart();
+				});
+			self.resetGameText = self.add
+				.text(
+					self.resetGameBox.getCenter().x,
+					self.resetGameBox.getCenter().y,
+					["Reset"]
+				)
+				.setColor("#FFFFFF")
+				.setFontSize(35)
+				.setFontFamily("Trebuchet MS")
+				.setOrigin(0.5);
 		}
 	}
 	update() {}
