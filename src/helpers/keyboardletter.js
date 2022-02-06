@@ -9,7 +9,14 @@ export default class KeyboardLetter {
 
 		this.render = (x, y, letter) => {
 			[self.x, self.y, self.letter] = [x, y, letter];
-			self.letterBox = scene.add.rectangle(x, y, 45, 45, 0xcccccc);
+			self.letterBox = scene.add.rectangle(x, y, 45, 45, 0xbbbbbb).setInteractive().on("pointerdown", function(){
+				if (!scene.gameOver && scene.guessIndex != scene.numLetters) {
+					scene.guessTiles[scene.turn][scene.guessIndex].updateLetter(
+						letter
+					);
+					scene.guessIndex += 1;				
+				}
+			});
 			self.letter = scene.add
 				.text(
 					self.letterBox.getCenter().x,

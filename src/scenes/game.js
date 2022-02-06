@@ -112,6 +112,30 @@ export default class Game extends Phaser.Scene {
 			letterX += 60;
 		}
 
+		this.backspaceButton = this.add.rectangle(260 + 437, 800, 80, 45, 0xbbbbbb).setInteractive().on("pointerdown", function(){
+			if(self.guessIndex != 0) {
+				self.guessTiles[self.turn][self.guessIndex - 1].updateLetter("");
+				self.guessIndex -= 1;
+			}
+		});
+		this.backspaceText = this.add.text(this.backspaceButton.getCenter().x, this.backspaceButton.getCenter().y, ["Back"])
+			.setColor("#FFFFFF")
+			.setFontSize(25)
+			.setFontFamily("Trebuchet MS")
+			.setOrigin(0.5);
+		this.enterButton = this.add.rectangle(187, 800, 70, 45, 0xbbbbbb).setInteractive().on("pointerdown", function(){
+			if(self.guessIndex === self.numLetters) {
+				if (checkIfValidWord()) {
+					checkWord();
+				}
+			}
+		});
+		this.enterButtonText = this.add.text(this.enterButton.getCenter().x, this.enterButton.getCenter().y, ["Enter"])
+			.setColor("#FFFFFF")
+			.setFontSize(25)
+			.setFontFamily("Trebuchet MS")
+			.setOrigin(0.5);
+
 		var startX = self.numLetters === 6 ? 225 : 260;
 		for (let i = 0; i < 6; i++) {
 			self.guessTiles[i] = [];
