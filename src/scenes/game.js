@@ -9,6 +9,7 @@ export default class Game extends Phaser.Scene {
 	}
 	init(data) {
 		this.numLetters = data.numLetters;
+		this.hardMode = data.difficulty;
 	}
 	preload() {
 		this.load.baseURL = "https://extras.natekeep.com/wordle-media/";
@@ -78,7 +79,6 @@ export default class Game extends Phaser.Scene {
 					Math.floor(Math.random() * self.allWords["6"].length)
 				].toUpperCase();
 		}
-
 		console.log(self.wordToGuess);
 
 		var [letterX, letterY] = [175, 680];
@@ -112,25 +112,43 @@ export default class Game extends Phaser.Scene {
 			letterX += 60;
 		}
 
-		this.backspaceButton = this.add.rectangle(260 + 437, 800, 80, 45, 0xbbbbbb).setInteractive().on("pointerdown", function(){
-			if(self.guessIndex != 0) {
-				self.guessTiles[self.turn][self.guessIndex - 1].updateLetter("");
-				self.guessIndex -= 1;
-			}
-		});
-		this.backspaceText = this.add.text(this.backspaceButton.getCenter().x, this.backspaceButton.getCenter().y, ["Back"])
+		this.backspaceButton = this.add
+			.rectangle(260 + 437, 800, 80, 45, 0xbbbbbb)
+			.setInteractive()
+			.on("pointerdown", function () {
+				if (self.guessIndex != 0) {
+					self.guessTiles[self.turn][
+						self.guessIndex - 1
+					].updateLetter("");
+					self.guessIndex -= 1;
+				}
+			});
+		this.backspaceText = this.add
+			.text(
+				this.backspaceButton.getCenter().x,
+				this.backspaceButton.getCenter().y,
+				["Back"]
+			)
 			.setColor("#FFFFFF")
 			.setFontSize(25)
 			.setFontFamily("Trebuchet MS")
 			.setOrigin(0.5);
-		this.enterButton = this.add.rectangle(187, 800, 70, 45, 0xbbbbbb).setInteractive().on("pointerdown", function(){
-			if(self.guessIndex === self.numLetters) {
-				if (checkIfValidWord()) {
-					checkWord();
+		this.enterButton = this.add
+			.rectangle(187, 800, 70, 45, 0xbbbbbb)
+			.setInteractive()
+			.on("pointerdown", function () {
+				if (self.guessIndex === self.numLetters) {
+					if (checkIfValidWord()) {
+						checkWord(self.hardMode);
+					}
 				}
-			}
-		});
-		this.enterButtonText = this.add.text(this.enterButton.getCenter().x, this.enterButton.getCenter().y, ["Enter"])
+			});
+		this.enterButtonText = this.add
+			.text(
+				this.enterButton.getCenter().x,
+				this.enterButton.getCenter().y,
+				["Enter"]
+			)
 			.setColor("#FFFFFF")
 			.setFontSize(25)
 			.setFontFamily("Trebuchet MS")
@@ -172,13 +190,13 @@ export default class Game extends Phaser.Scene {
 					self.guessIndex === self.numLetters
 				) {
 					if (checkIfValidWord()) {
-						checkWord();
+						checkWord(self.hardMode);
 					}
 				}
 			}
 		});
 
-		function checkWord() {
+		function checkWord(hardMode = true) {
 			let correctTiles = 0;
 			self.guessTiles[self.turn].forEach((letter, i) => {
 				if (letter.value === self.wordToGuess[i]) {
@@ -193,6 +211,43 @@ export default class Game extends Phaser.Scene {
 					self.letterTiles[letter.value].setColor(0);
 				}
 			});
+			if(hardMode){
+				let duplicatesChecked = [];
+				self.guessTiles[self.turn].forEach((letter) => { //Search the string for duplicate letters
+					if(!(duplicatesChecked.includes(letter.value))){
+						let guessMatches = 0;
+						self.guessTiles[self.turn].forEach((letter2) =>{
+							if(letter2.value === letter.value) guessMatches += 1;
+						});
+						//console.log("guessMatches" + guessMatches.toString());
+						if(guessMatches > 1){
+							let matches = 0;
+							for(let j = 0; j < self.wordToGuess.length; j++){
+								if(self.wordToGuess[j] === letter.value) matches++;
+							}
+							//console.log("matches" + matches.toString());
+							let coloredTiles = 0;
+							self.guessTiles[self.turn].forEach((letter4, k) => {
+								if(self.guessTiles[self.turn][k].getColor() > 0 && letter4.value === letter.value) coloredTiles++;
+							});
+							//console.log("coloredTiles" + coloredTiles.toString());
+							let blackTiles = coloredTiles - matches;
+							//console.log("blackTiles" + blackTiles.toString());
+							if(blackTiles){
+								for(let j = self.numLetters - 1; j >= 0; j--){
+									if(self.guessTiles[self.turn][j].getColor() === 1 && self.guessTiles[self.turn][j].value === letter.value){
+										self.guessTiles[self.turn][j].setColor(0);
+										if(!(blackTiles -= 1)) break;
+									}
+								}
+							}
+						}
+						duplicatesChecked.push(letter.value);
+					}
+				});
+			}
+		
+
 			if (correctTiles === self.numLetters) {
 				self.gameOver = true;
 				updateNotificationText("Congrats you won!", "#00FF00");

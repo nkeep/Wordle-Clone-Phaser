@@ -7,6 +7,7 @@ export default class GuessTile {
 		this.letter;
 		this.tile;
 		this.value;
+		this.color
 
 		this.render = (x, y) => {
 			[self.x, self.y] = [x, y];
@@ -33,14 +34,20 @@ export default class GuessTile {
 			switch (color) {
 				case 0:
 					this.box.setFillStyle(0x222222);
+					this.color = 0;
 					break;
 				case 1:
 					this.box.setFillStyle(0xffa500);
+					this.color = 1;
 					break;
 				case 2:
 					this.box.setFillStyle(0x32cd32);
+					this.color = 2;
 					break;
 			}
 		};
+		this.getColor = () =>{
+			return this.color;
+		}
 	}
 }
